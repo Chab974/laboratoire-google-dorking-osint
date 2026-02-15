@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laboratoire Google Dorking : Maîtrise & OSINT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Chart Container Styling - MANDATORY */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        
+        /* Custom Utilities */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        .btn-primary {
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+        }
+        /* Workflow Connector Line */
+        .step-connector {
+            position: absolute;
+            top: 50%;
+            left: 100%;
+            width: 2rem;
+            height: 2px;
+            background-color: #cbd5e1;
+            transform: translateY(-50%);
+            z-index: 0;
+        }
+        .step-item.active .step-circle {
+            background-color: #4f46e5;
+            color: white;
+            border-color: #4f46e5;
+        }
+        .step-item.active .step-text {
+            color: #4f46e5;
+            font-weight: 700;
+        }
+        body {
+            background-color: #f8fafc; /* Slate-50 */
+            color: #1e293b; /* Slate-800 */
+        }
+    </style>
+    <!-- Chosen Palette: Slate & Indigo (Clean Professional/Security) -->
+    <!-- Application Structure Plan: 
+         1. Header & Ethics Warning: Immediate context setting.
+         2. Analytics: Charts (User types, Risk).
+         3. Operator Table: Grid of Dork commands.
+         4. Dork Builder: Interactive query generator.
+         5. Scenarios: Tabbed use cases.
+         6. Methodology & OSINT Arsenal (NEW): Replaces Defense section. Interactive workflow selector showing tools, search engines, and AI integration for each phase of an investigation.
+         7. Footer.
+    -->
+    <!-- Visualization & Content Choices:
+         1. Workflow Steps (HTML/JS): Interactive roadmap (Recon -> Analysis -> Deep Research).
+         2. Tool Cards (Dynamic Grid): Cards updating based on selected workflow step.
+         3. AI Deep Research Highlight: Special focus on LLM agents.
+         NO SVG used directly. NO Mermaid JS used.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="antialiased">
+
+    <!-- Navigation / Header -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-search text-indigo-600 text-2xl mr-3"></i>
+                    <span class="font-bold text-xl tracking-tight text-slate-800">Dorking<span class="text-indigo-600">Lab</span></span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="#basics" class="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Opérateurs</a>
+                    <a href="#builder" class="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Constructeur</a>
+                    <a href="#scenarios" class="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Scénarios</a>
+                    <a href="#methodology" class="text-slate-600 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">Mode Opératoire</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section with Ethics Warning -->
+    <div class="relative bg-slate-50 pt-10 pb-8 overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <h1 class="text-4xl tracking-tight font-extrabold text-slate-900 sm:text-5xl md:text-6xl">
+                    Maîtrisez la <span class="text-indigo-600">Recherche Avancée</span>
+                </h1>
+                <p class="mt-3 max-w-md mx-auto text-base text-slate-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+                    Transformez Google en un outil d'investigation chirurgical pour l'OSINT, la cybersécurité et la recherche académique.
+                </p>
+                
+                <!-- Ethics Alert -->
+                <div class="mt-8 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-md text-left max-w-4xl mx-auto shadow-sm">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-amber-500 text-xl"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-amber-800 uppercase tracking-wide">Avertissement Légal & Éthique</h3>
+                            <div class="mt-2 text-sm text-amber-700">
+                                <p>
+                                    Ce tutoriel est à but <strong>strictement éducatif</strong>. Utiliser le "Google Dorking" pour accéder à des données privées, des serveurs protégés ou pour nuire à autrui est <strong>illégal</strong>. Utilisez ces connaissances pour auditer vos propres systèmes ou pour de la recherche légitime. La curiosité est une qualité, l'intrusion est un délit.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 1: Data Overview & Analytics -->
+    <section class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-8">
+                <h2 class="text-3xl font-bold text-slate-900">Analyse de l'Écosystème</h2>
+                <p class="mt-2 text-lg text-slate-600">
+                    Comprendre qui utilise ces techniques et quels sont les risques associés aux fichiers exposés.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Chart 1: User Personas -->
+                <div class="bg-slate-50 rounded-xl p-6 shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                        <i class="fas fa-users text-indigo-500 mr-2"></i> Qui utilise le Dorking ?
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="userTypeChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-400 mt-2">Estimation basée sur les cas d'usage courants</p>
+                </div>
+
+                <!-- Chart 2: File Risk Analysis -->
+                <div class="bg-slate-50 rounded-xl p-6 shadow-sm border border-slate-100">
+                    <h3 class="text-lg font-semibold text-slate-800 mb-4 flex items-center">
+                        <i class="fas fa-shield-alt text-red-500 mr-2"></i> Sensibilité des Fichiers Exposés
+                    </h3>
+                    <div class="chart-container">
+                        <canvas id="riskChart"></canvas>
+                    </div>
+                    <p class="text-xs text-center text-slate-400 mt-2">Niveau de risque critique en cas d'indexation publique</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 2: Interactive Operator Table -->
+    <section id="basics" class="py-12 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mb-10 text-center">
+                <h2 class="text-3xl font-bold text-slate-900">Tableau des Opérateurs</h2>
+                <p class="mt-2 text-lg text-slate-600">Cliquez sur une carte pour voir les détails et des exemples d'utilisation.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left: The Grid -->
+                <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-4" id="operatorGrid">
+                    <!-- Javascript will populate this -->
+                </div>
+
+                <!-- Right: Detail View -->
+                <div class="lg:col-span-1">
+                    <div id="operatorDetail" class="sticky top-24 bg-white p-6 rounded-xl shadow-lg border-t-4 border-indigo-500 min-h-[300px] flex flex-col justify-center items-center text-center transition-all duration-300">
+                        <div class="text-slate-300">
+                            <i class="fas fa-mouse-pointer text-4xl mb-4"></i>
+                            <p class="text-lg">Sélectionnez un opérateur pour voir sa fonction.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 3: The Dork Builder -->
+    <section id="builder" class="py-16 bg-indigo-900 text-white relative overflow-hidden">
+        <!-- Decorative background elements -->
+        <div class="absolute top-0 left-0 w-full h-full opacity-10">
+            <div class="absolute right-10 top-10 text-9xl font-mono">}</div>
+            <div class="absolute left-10 bottom-10 text-9xl font-mono">{</div>
+        </div>
+
+        <div class="max-w-4xl mx-auto px-4 relative z-10">
+            <div class="text-center mb-10">
+                <h2 class="text-3xl font-bold">Constructeur de Requête</h2>
+                <p class="text-indigo-200 mt-2">Assemblez vos opérateurs pour créer une recherche précise.</p>
+            </div>
+
+            <div class="bg-white/10 backdrop-blur-md rounded-xl p-8 border border-white/20 shadow-2xl">
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                    
+                    <!-- Operator Select -->
+                    <div class="md:col-span-3">
+                        <label class="block text-indigo-200 text-sm font-bold mb-2">Opérateur</label>
+                        <select id="builderOp" class="w-full bg-slate-800 text-white border border-indigo-500 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                            <option value="">(Aucun)</option>
+                            <option value='site:'>site:</option>
+                            <option value='filetype:'>filetype:</option>
+                            <option value='inurl:'>inurl:</option>
+                            <option value='intitle:'>intitle:</option>
+                            <option value='intext:'>intext:</option>
+                        </select>
+                    </div>
+
+                    <!-- Value Input -->
+                    <div class="md:col-span-4">
+                        <label class="block text-indigo-200 text-sm font-bold mb-2">Paramètre (ex: pdf, .gov)</label>
+                        <input type="text" id="builderParam" placeholder="ex: pdf" class="w-full bg-slate-800 text-white border border-indigo-500 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    </div>
+
+                    <!-- Search Terms -->
+                    <div class="md:col-span-5">
+                        <label class="block text-indigo-200 text-sm font-bold mb-2">Mots-clés</label>
+                        <input type="text" id="builderQuery" placeholder="ex: rapport confidentiel" class="w-full bg-slate-800 text-white border border-indigo-500 rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    </div>
+                </div>
+
+                <!-- Result Area -->
+                <div class="mt-8">
+                    <label class="block text-indigo-200 text-xs font-bold mb-2 uppercase tracking-wide">Résultat (Google Dork)</label>
+                    <div class="flex items-center">
+                        <div id="dorkOutput" class="flex-grow font-mono bg-black text-green-400 p-4 rounded-l-lg border border-slate-700 overflow-x-auto whitespace-nowrap">
+                            En attente de saisie...
+                        </div>
+                        <button onclick="copyDork()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-4 px-6 rounded-r-lg transition duration-200 h-full border-t border-b border-r border-indigo-500">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <p id="copyFeedback" class="text-green-400 text-xs mt-2 hidden"><i class="fas fa-check"></i> Copié dans le presse-papier !</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 4: Use Case Scenarios -->
+    <section id="scenarios" class="py-12 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-3xl font-bold text-slate-900 mb-8">Scénarios & Combinaisons Puissantes</h2>
+            
+            <div class="flex flex-col md:flex-row gap-8">
+                <!-- Navigation Tabs -->
+                <div class="md:w-1/4 flex flex-col space-y-2">
+                    <button onclick="showScenario('academic')" id="tab-academic" class="scenario-tab active text-left px-4 py-3 rounded-lg font-medium bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600 transition-all">
+                        <i class="fas fa-graduation-cap w-6"></i> Académique & Recherche
+                    </button>
+                    <button onclick="showScenario('security')" id="tab-security" class="scenario-tab text-left px-4 py-3 rounded-lg font-medium text-slate-600 hover:bg-slate-50 transition-all">
+                        <i class="fas fa-user-secret w-6"></i> Audit de Sécurité
+                    </button>
+                    <button onclick="showScenario('files')" id="tab-files" class="scenario-tab text-left px-4 py-3 rounded-lg font-medium text-slate-600 hover:bg-slate-50 transition-all">
+                        <i class="fas fa-folder-open w-6"></i> Répertoires Ouverts
+                    </button>
+                    <button onclick="showScenario('camera')" id="tab-camera" class="scenario-tab text-left px-4 py-3 rounded-lg font-medium text-slate-600 hover:bg-slate-50 transition-all">
+                        <i class="fas fa-video w-6"></i> IoT & Caméras
+                    </button>
+                </div>
+
+                <!-- Content Area -->
+                <div class="md:w-3/4 bg-slate-50 rounded-2xl p-8 border border-slate-200 min-h-[300px]">
+                    <div id="scenario-content">
+                        <!-- Content injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section 5: Methodology & Tools (REPLACED DEFENSE) -->
+    <section id="methodology" class="py-16 bg-slate-100 border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <span class="bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Workflow OSINT</span>
+                <h2 class="text-3xl font-bold text-slate-900 mt-2">Mode Opératoire & Arsenal</h2>
+                <p class="mt-3 text-lg text-slate-600 max-w-2xl mx-auto">
+                    Le Dorking n'est qu'une étape. Voici comment structurer une recherche avancée en combinant moteurs alternatifs, outils spécialisés et intelligence artificielle.
+                </p>
+            </div>
+
+            <!-- Workflow Steps -->
+            <div class="flex justify-center mb-12 relative">
+                <!-- Line -->
+                <div class="absolute top-1/2 left-0 w-full h-1 bg-slate-300 transform -translate-y-1/2 z-0 hidden md:block" style="max-width: 600px; left: 50%; transform: translate(-50%, -50%);"></div>
+                
+                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-12 relative z-10 w-full max-w-2xl justify-between">
+                    <!-- Step 1 -->
+                    <button onclick="showToolCategory('search')" id="step-search" class="workflow-step active group flex flex-col items-center focus:outline-none">
+                        <div class="w-16 h-16 rounded-full bg-white border-4 border-indigo-600 text-indigo-600 flex items-center justify-center text-xl shadow-lg transition-all group-hover:scale-110">
+                            <i class="fas fa-globe"></i>
+                        </div>
+                        <span class="mt-3 font-bold text-slate-800 bg-slate-100 px-2">1. Reconnaissance</span>
+                    </button>
+                    
+                    <!-- Step 2 (Formerly Step 3) -->
+                    <button onclick="showToolCategory('ai')" id="step-ai" class="workflow-step group flex flex-col items-center focus:outline-none">
+                        <div class="w-16 h-16 rounded-full bg-white border-4 border-slate-300 text-slate-400 flex items-center justify-center text-xl shadow-sm transition-all group-hover:border-indigo-400 group-hover:text-indigo-400">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <span class="mt-3 font-medium text-slate-500 bg-slate-100 px-2">2. IA & Deep Research</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic Tool Grid -->
+            <div class="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden min-h-[400px]">
+                <div class="bg-indigo-900 px-6 py-4 flex justify-between items-center">
+                    <h3 id="arsenal-title" class="text-xl font-bold text-white flex items-center">
+                        <i class="fas fa-globe mr-3"></i> Moteurs de Recherche & Indexation
+                    </h3>
+                    <span class="text-indigo-300 text-sm italic hidden md:inline"><i class="fas fa-mouse-pointer mr-1"></i> Cliquez sur un outil pour voir sa synergie</span>
+                </div>
+                
+                <div id="arsenal-grid" class="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Javascript will populate this -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Modal for Tool Details -->
+    <div id="toolModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <!-- Background overlay -->
+            <div class="fixed inset-0 bg-slate-900 bg-opacity-75 transition-opacity" aria-hidden="true" onclick="closeToolModal()"></div>
+
+            <!-- Modal panel -->
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full">
+                <div class="bg-indigo-600 px-4 py-3 flex justify-between items-center">
+                    <h3 class="text-lg leading-6 font-bold text-white" id="modal-tool-name">Nom de l'outil</h3>
+                    <button onclick="closeToolModal()" class="text-indigo-200 hover:text-white focus:outline-none">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <div class="mt-2">
+                                <p class="text-sm text-slate-500 mb-4" id="modal-tool-desc">Description...</p>
+                                
+                                <div class="bg-slate-50 rounded-lg p-4 border border-indigo-100">
+                                    <h4 class="text-sm font-bold text-indigo-700 uppercase tracking-wide mb-2">
+                                        <i class="fas fa-link mr-1"></i> Synergie & Activation
+                                    </h4>
+                                    <p class="text-slate-700 text-sm" id="modal-tool-synergy">Synergy text...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm" onclick="closeToolModal()">
+                        Fermer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-400 py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <p class="mb-4">
+                <i class="fas fa-database text-indigo-500"></i> Ressource avancée : 
+                <a href="https://www.exploit-db.com/google-hacking-database" target="_blank" class="text-indigo-400 hover:text-indigo-300 underline">Google Hacking Database (GHDB)</a>
+            </p>
+            <p class="text-sm opacity-75">
+                © 2024 Tutoriel Interactif Google Dorking. Basé sur le guide source fourni.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // --- GLOBAL HELPER: COPY TO CLIPBOARD ---
+        // This addresses the NotAllowedError by using document.execCommand as a fallback
+        // which works more reliably in iframes than navigator.clipboard
+        window.copyText = function(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed'; // Prevent scrolling
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+            } catch (err) {
+                console.error('Copy failed', err);
+            }
+            document.body.removeChild(textarea);
+        }
+
+        // --- DATA STORAGE ---
+        const operators = [
+            { 
+                code: '" "', 
+                name: 'Expression Exacte', 
+                type: 'Basique',
+                color: 'bg-blue-100 text-blue-800',
+                desc: 'Recherche la phrase exacte, mot pour mot.',
+                example: '"chat bleu"'
+            },
+            { 
+                code: '-', 
+                name: 'Exclusion', 
+                type: 'Basique',
+                color: 'bg-red-100 text-red-800',
+                desc: 'Exclut un terme spécifique des résultats de recherche.',
+                example: 'vitesse jaguar -voiture'
+            },
+            { 
+                code: 'OR', 
+                name: 'Logique OU', 
+                type: 'Basique',
+                color: 'bg-blue-100 text-blue-800',
+                desc: 'Trouve des pages contenant l\'un OU l\'autre des termes.',
+                example: 'macintosh OR windows'
+            },
+            { 
+                code: '..', 
+                name: 'Plage Numérique', 
+                type: 'Basique',
+                color: 'bg-blue-100 text-blue-800',
+                desc: 'Recherche une plage de nombres (prix, années).',
+                example: 'smartphone 200€..500€'
+            },
+            { 
+                code: 'site:', 
+                name: 'Filtrer par Site', 
+                type: 'Avancé',
+                color: 'bg-indigo-100 text-indigo-800',
+                desc: 'Limite la recherche à un domaine (.org, .fr) ou un site spécifique.',
+                example: 'site:wikipedia.org linux'
+            },
+            { 
+                code: 'filetype:', 
+                name: 'Type de Fichier', 
+                type: 'Avancé',
+                color: 'bg-indigo-100 text-indigo-800',
+                desc: 'Recherche uniquement des extensions de fichiers spécifiques (pdf, xls, doc).',
+                example: 'filetype:pdf "rapport"'
+            },
+            { 
+                code: 'inurl:', 
+                name: 'Dans l\'URL', 
+                type: 'Avancé',
+                color: 'bg-indigo-100 text-indigo-800',
+                desc: 'Cherche le mot-clé spécifiquement dans l\'adresse web (URL).',
+                example: 'inurl:login'
+            },
+            { 
+                code: 'intitle:', 
+                name: 'Dans le Titre', 
+                type: 'Avancé',
+                color: 'bg-indigo-100 text-indigo-800',
+                desc: 'Cherche le mot-clé dans la balise HTML <title> de la page.',
+                example: 'intitle:"index of"'
+            },
+            { 
+                code: 'intext:', 
+                name: 'Dans le Texte', 
+                type: 'Avancé',
+                color: 'bg-indigo-100 text-indigo-800',
+                desc: 'Cherche le terme uniquement dans le corps du texte de la page.',
+                example: 'intext:"confidentiel"'
+            }
+        ];
+
+        const scenariosData = {
+            academic: {
+                title: "Recherche Académique",
+                icon: "fa-graduation-cap",
+                color: "text-indigo-600",
+                desc: "Trouvez des thèses, des livres et des rapports officiels en filtrant les domaines éducatifs et les formats de documents.",
+                dorks: [
+                    { label: "Livres PDF sur l'IA", cmd: 'site:.edu filetype:pdf "intelligence artificielle"' },
+                    { label: "Rapports Gouvernementaux", cmd: 'site:.gouv.fr filetype:pdf "climat"' }
+                ]
+            },
+            security: {
+                title: "Audit de Sécurité",
+                icon: "fa-user-secret",
+                color: "text-red-600",
+                desc: "Identifiez les fuites d'informations potentielles comme les fichiers de configuration ou les mots de passe exposés.",
+                dorks: [
+                    { label: "Fichiers d'environnement (.env)", cmd: 'filetype:env "DB_PASSWORD"' },
+                    { label: "Fichiers Log exposés", cmd: 'filetype:log "error" "password"' },
+                    { label: "Fuites Pastebin", cmd: 'site:pastebin.com "password" "gmail.com"' }
+                ]
+            },
+            files: {
+                title: "Répertoires Ouverts (Index Of)",
+                icon: "fa-folder-open",
+                color: "text-amber-600",
+                desc: "Trouvez des serveurs mal configurés qui listent publiquement leurs fichiers (Films, Musique, Images).",
+                dorks: [
+                    { label: "Musique (MP3)", cmd: 'intitle:"index of" "parent directory" mp3 "beethoven"' },
+                    { label: "Images de vacances", cmd: 'intitle:"index of" (jpg OR png) "vacances"' }
+                ]
+            },
+            camera: {
+                title: "IoT & Caméras",
+                icon: "fa-video",
+                color: "text-emerald-600",
+                desc: "Détectez les interfaces web de caméras de sécurité accessibles publiquement.",
+                dorks: [
+                    { label: "Caméras Axis", cmd: 'intitle:"Live View / - AXIS"' },
+                    { label: "Interfaces View SHTML", cmd: 'inurl:"view/view.shtml"' }
+                ]
+            }
+        };
+
+        const arsenalData = {
+            search: {
+                title: "Moteurs & IA Deep Research",
+                icon: "fa-globe",
+                tools: [
+                    { 
+                        name: "Google", 
+                        desc: "La base. Utilisé pour l'indexation massive et les opérateurs standards.", 
+                        tag: "Généraliste",
+                        synergy: "C'est le moteur principal. Utilisez les dorks pour filtrer ses milliards de pages. Astuce : utilisez le cache Google (`cache:site.com`) si la page a été modifiée récemment."
+                    },
+                    { 
+                        name: "DuckDuckGo", 
+                        desc: "Ne traque pas l'utilisateur. Permet des recherches 'clean' sans bulle de filtre.", 
+                        tag: "Confidentialité",
+                        synergy: "Supporte aussi les '!bangs' et certains dorks de base. Utile pour vérifier si des résultats sont censurés sur Google (DMCA)."
+                    },
+                    { 
+                        name: "ChatGPT (OpenAI)", 
+                        desc: "IA conversationnelle capable d'analyser le web et d'exécuter des recherches autonomes.", 
+                        tag: "Deep Research",
+                        synergy: "<strong>Activation Deep Research :</strong> Cliquez sur le bouton 'Deep Research' à gauche de la barre de prompt.<br><br><strong>Usage :</strong> Donnez-lui un Dork complexe et demandez : 'Exécute cette recherche, visite les 5 premiers résultats et fais une synthèse des vulnérabilités trouvées'."
+                    },
+                    { 
+                        name: "Gemini (Google)", 
+                        desc: "L'IA native de Google, connectée en temps réel à l'index de recherche et aux outils Workspace.", 
+                        tag: "Deep Research",
+                        synergy: "<strong>Activation Deep Research :</strong> Utilisez le modèle 'Gemini Advanced'. Commencez votre prompt par 'Effectue une recherche approfondie sur...'.<br><br><strong>Usage :</strong> Il peut générer un plan d'investigation, exécuter plusieurs itérations de Dorks automatiquement et créer un rapport structuré avec sources."
+                    },
+                    { 
+                        name: "Perplexity AI", 
+                        desc: "Moteur de réponse hybride combinant recherche web et synthèse LLM avec citations.", 
+                        tag: "Deep Research",
+                        synergy: "<strong>Activation Deep Research :</strong> Activez le bouton 'Deep Search' (ou 'Pro') avant de lancer la requête.<br><br><strong>Usage :</strong> Idéal pour la reconnaissance initiale. Il posera des questions de clarification pour affiner votre cible avant de scanner des centaines de sources."
+                    }
+                ]
+            },
+            ai: {
+                title: "Intelligence Artificielle & Deep Research",
+                icon: "fa-robot",
+                tools: [
+                    { 
+                        name: "Générateurs de Dorks (LLM)", 
+                        desc: "Utilisez ChatGPT ou Gemini pour créer des dorks complexes.", 
+                        tag: "Génération",
+                        synergy: "Prompt : 'Agis comme un expert OSINT. Génère une liste de 10 Google Dorks pour trouver des panneaux d'administration login exposés sur des sites Wordpress'."
+                    },
+                    { 
+                        name: "Deep Research Agents", 
+                        desc: "Agents IA autonomes qui exécutent des recherches récursives, lisent le contenu des pages trouvées et synthétisent l'info.", 
+                        tag: "Automation",
+                        synergy: "L'IA peut 'lire' les 100 premiers résultats d'un Dork (que vous n'auriez pas le temps d'ouvrir) et vous faire un résumé exécutif des fuites trouvées."
+                    },
+                    { 
+                        name: "Analyse de Contenu", 
+                        desc: "Uploadez un PDF trouvé via dorking dans une IA pour obtenir un résumé immédiat des points critiques.", 
+                        tag: "Analyse",
+                        synergy: "Trouvez un rapport de 500 pages avec `filetype:pdf`. Donnez-le à l'IA avec la question : 'Extrais toutes les adresses email et les montants financiers mentionnés'."
+                    },
+                    { 
+                        name: "Reconnaissance d'Images", 
+                        desc: "Utilisez la vision par ordinateur pour analyser massivement les images trouvées dans des répertoires ouverts.", 
+                        tag: "Vision",
+                        synergy: "Sur un `intitle:'index of' (jpg)`, l'IA peut scanner les milliers de photos pour flagger automatiquement celles contenant des visages, des passeports ou de la nudité."
+                    }
+                ]
+            }
+        };
+
+        // --- DOM ELEMENTS ---
+        const operatorGrid = document.getElementById('operatorGrid');
+        const operatorDetail = document.getElementById('operatorDetail');
+        const builderOp = document.getElementById('builderOp');
+        const builderParam = document.getElementById('builderParam');
+        const builderQuery = document.getElementById('builderQuery');
+        const dorkOutput = document.getElementById('dorkOutput');
+        const scenarioContent = document.getElementById('scenario-content');
+        const arsenalGrid = document.getElementById('arsenal-grid');
+        const arsenalTitle = document.getElementById('arsenal-title');
+        const toolModal = document.getElementById('toolModal');
+
+        // --- RENDER FUNCTIONS ---
+        function renderOperators() {
+            operatorGrid.innerHTML = operators.map((op, index) => `
+                <div class="bg-white rounded-lg shadow-sm border border-slate-200 p-4 cursor-pointer hover:shadow-md transition-shadow hover:bg-indigo-50" onclick="showOperatorDetail(${index})">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="font-mono text-sm font-bold bg-slate-100 px-2 py-1 rounded border border-slate-300">${op.code}</span>
+                        <span class="text-xs px-2 py-1 rounded-full ${op.color}">${op.type}</span>
+                    </div>
+                    <h3 class="font-medium text-slate-800">${op.name}</h3>
+                </div>
+            `).join('');
+        }
+
+        function showOperatorDetail(index) {
+            const op = operators[index];
+            operatorDetail.innerHTML = `
+                <div class="w-full text-left animate-fade-in-up">
+                    <div class="flex items-center justify-between mb-4 pb-4 border-b border-indigo-100">
+                        <h2 class="text-2xl font-bold text-indigo-700 font-mono">${op.code}</h2>
+                        <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${op.color}">${op.type}</span>
+                    </div>
+                    <p class="text-slate-600 mb-6 text-lg">${op.desc}</p>
+                    <div class="bg-slate-900 rounded-lg p-4 relative group">
+                        <p class="text-slate-400 text-xs mb-1 uppercase font-bold tracking-wider">Exemple :</p>
+                        <code class="text-green-400 font-mono text-sm block">${op.example}</code>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateBuilder() {
+            const op = builderOp.value;
+            const param = builderParam.value.trim();
+            const query = builderQuery.value.trim();
+            let result = '';
+
+            if (op) {
+                result += `${op}`;
+                if (param) result += `${param} `;
+                else result += `[valeur] `;
+            }
+            if (query) result += `"${query}"`;
+            
+            dorkOutput.innerText = result || 'En attente de saisie...';
+        }
+
+        function copyDork() {
+            const text = dorkOutput.innerText;
+            if(text && text !== 'En attente de saisie...') {
+                // Use fallback textarea method
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    const feedback = document.getElementById('copyFeedback');
+                    feedback.classList.remove('hidden');
+                    setTimeout(() => feedback.classList.add('hidden'), 2000);
+                } catch (err) {
+                    console.error('Copy failed', err);
+                }
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // --- SCENARIO LOGIC ---
+        function showScenario(key) {
+            document.querySelectorAll('.scenario-tab').forEach(t => {
+                t.classList.remove('active', 'bg-indigo-50', 'text-indigo-700', 'border-l-4', 'border-indigo-600');
+                t.classList.add('text-slate-600', 'hover:bg-slate-50');
+            });
+            const activeTab = document.getElementById(`tab-${key}`);
+            activeTab.classList.add('active', 'bg-indigo-50', 'text-indigo-700', 'border-l-4', 'border-indigo-600');
+            activeTab.classList.remove('text-slate-600', 'hover:bg-slate-50');
+
+            const data = scenariosData[key];
+            scenarioContent.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="flex items-center mb-4">
+                        <div class="p-3 bg-white rounded-lg shadow-sm mr-4">
+                            <i class="fas ${data.icon} text-2xl ${data.color}"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-2xl font-bold text-slate-800">${data.title}</h3>
+                        </div>
+                    </div>
+                    <p class="text-slate-600 mb-6">${data.desc}</p>
+                    <h4 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Exemples Prêts à l'Emploi</h4>
+                    <div class="space-y-4">
+                        ${data.dorks.map(d => `
+                            <div class="bg-white border border-slate-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-medium text-slate-700">${d.label}</span>
+                                    <button onclick="copyText('${d.cmd.replace(/"/g, "&quot;")}')" class="text-indigo-500 hover:text-indigo-700 text-sm font-medium">
+                                        <i class="fas fa-copy mr-1"></i> Copier
+                                    </button>
+                                </div>
+                                <code class="block bg-slate-900 text-green-400 p-3 rounded text-sm font-mono break-all">${d.cmd}</code>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ARSENAL / METHODOLOGY LOGIC (NEW) ---
+        function showToolCategory(category) {
+            // Update Active State
+            document.querySelectorAll('.workflow-step').forEach(el => {
+                const circle = el.querySelector('div');
+                const text = el.querySelector('span');
+                
+                // Reset styles
+                circle.classList.remove('bg-indigo-600', 'text-white', 'border-indigo-600');
+                circle.classList.add('bg-white', 'border-slate-300', 'text-slate-400');
+                text.classList.remove('text-slate-800', 'font-bold');
+                text.classList.add('text-slate-500', 'font-medium');
+            });
+
+            // Set Active
+            const activeBtn = document.getElementById(`step-${category}`);
+            const activeCircle = activeBtn.querySelector('div');
+            const activeText = activeBtn.querySelector('span');
+            
+            activeCircle.classList.remove('bg-white', 'border-slate-300', 'text-slate-400');
+            activeCircle.classList.add('bg-indigo-600', 'text-white', 'border-indigo-600');
+            activeText.classList.remove('text-slate-500', 'font-medium');
+            activeText.classList.add('text-slate-800', 'font-bold');
+
+            // Render Tools
+            const data = arsenalData[category];
+            arsenalTitle.innerHTML = `<i class="fas ${data.icon} mr-3"></i> ${data.title}`;
+            
+            arsenalGrid.innerHTML = data.tools.map((tool, index) => `
+                <div onclick="openToolModal('${category}', ${index})" class="bg-slate-50 p-6 rounded-lg border border-slate-200 hover:border-indigo-500 hover:shadow-lg hover:bg-white cursor-pointer transition-all duration-200 group relative">
+                    <div class="absolute top-3 right-3 text-slate-300 group-hover:text-indigo-400">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </div>
+                    <div class="flex justify-between items-start mb-3 pr-6">
+                        <h4 class="font-bold text-slate-800 text-lg group-hover:text-indigo-600">${tool.name}</h4>
+                    </div>
+                    <span class="text-xs bg-white border border-slate-200 px-2 py-1 rounded text-slate-500 mb-3 inline-block">${tool.tag}</span>
+                    <p class="text-sm text-slate-600 leading-relaxed">${tool.desc}</p>
+                </div>
+            `).join('');
+        }
+
+        // --- MODAL LOGIC ---
+        function openToolModal(category, index) {
+            const tool = arsenalData[category].tools[index];
+            
+            document.getElementById('modal-tool-name').textContent = tool.name;
+            document.getElementById('modal-tool-desc').textContent = tool.desc;
+            document.getElementById('modal-tool-synergy').innerHTML = tool.synergy || "Information de synergie non disponible.";
+            
+            toolModal.classList.remove('hidden');
+        }
+
+        function closeToolModal() {
+            toolModal.classList.add('hidden');
+        }
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === "Escape") {
+                closeToolModal();
+            }
+        });
+
+        // --- CHARTS INITIALIZATION ---
+        function initCharts() {
+            // Chart 1: User Types (Donut)
+            const ctx1 = document.getElementById('userTypeChart').getContext('2d');
+            new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Chercheurs Sécurité', 'Journalistes/OSINT', 'Développeurs', 'Acteurs Malveillants'],
+                    datasets: [{
+                        data: [35, 25, 15, 25],
+                        backgroundColor: ['#4F46E5', '#10B981', '#F59E0B', '#EF4444'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Chart 2: File Risk (Bar)
+            const ctx2 = document.getElementById('riskChart').getContext('2d');
+            new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: ['.pdf (Docs)', '.xls (Excel)', '.log (Journaux)', '.sql (Base de données)', '.env (Config)'],
+                    datasets: [{
+                        label: 'Niveau de Risque (1-10)',
+                        data: [2, 4, 7, 9, 10],
+                        backgroundColor: [
+                            '#10B981', // Green
+                            '#F59E0B', // Yellow
+                            '#F97316', // Orange
+                            '#EF4444', // Red
+                            '#7F1D1D'  // Dark Red
+                        ],
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 10 }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            renderOperators();
+            showOperatorDetail(0); // Show first detail by default
+            showScenario('academic'); // Show first scenario by default
+            showToolCategory('search'); // Show first arsenal category
+            initCharts();
+
+            // Builder Event Listeners
+            builderOp.addEventListener('change', updateBuilder);
+            builderParam.addEventListener('input', updateBuilder);
+            builderQuery.addEventListener('input', updateBuilder);
+        });
+
+    </script>
+</body>
+</html>
